@@ -1,31 +1,3 @@
-interface BasicUserInfo {
-    full_name: string | null;
-    biography: string | null;
-    followers_count: number | null;
-    following_count: number | null;
-    is_private: boolean | null;
-    is_verified: boolean | null;
-    profile_pic_url: string | null;
-    posts: InstagramPost[] | null;
-}
-
-export interface InstagramPost {
-    id: string;
-    shortcode: string;
-    display_url: string;
-    is_video: boolean;
-    video_url?: string;
-    caption: string;
-    timestamp: number;
-    like_count: number;
-    comment_count: number;
-    location?: string;
-    tagged_users?: string[];
-    media_type: string;
-    children?: InstagramPost[];
-}
-
-
 async function getUserInfoAndId(username: string, headers: HeadersInit): Promise<[string | null, BasicUserInfo | null, string | null]> {
     const url = `https://www.instagram.com/api/v1/users/web_profile_info/?username=${username}`;
     console.log(`Fetching user info for ${username}...`);
@@ -42,6 +14,7 @@ async function getUserInfoAndId(username: string, headers: HeadersInit): Promise
         }
 
         const data = await response.json();
+
         const userData = data?.data?.user;
 
         if (!userData) {
@@ -150,8 +123,10 @@ async function getUserInfoAndId(username: string, headers: HeadersInit): Promise
 }
 
 import puppeteer from 'puppeteer';
+import {BasicUserInfo, InstagramPost} from "@/lib/types";
 
 async function extractCookiesAndSession(): Promise<{ [key: string]: string }> {
+    console.log("Extracting cookies and session ID...");
     // Launch headless browser
     const browser = await puppeteer.launch({
         headless: true, // Run headlessly
@@ -192,6 +167,8 @@ async function extractCookiesAndSession(): Promise<{ [key: string]: string }> {
     // Close the browser session
     await browser.close();
 
+    // @ts-expect-error mnbmnb
+    globalThis.cookies = cookieDict
     return cookieDict;
 }
 
@@ -218,13 +195,16 @@ function prepare_headers(username: string, cookies: { [key: string]: string }) {
 
 
 export async function insta_scrape(username: string) {
-    const cookies = await extractCookiesAndSession();
+    // @ts-expect-error lkjlkjlkj
+    const cookies = globalThis.cookies as unknown as {[key: string]: string}|| await extractCookiesAndSession();
     const headers = prepare_headers(username, cookies);
     const [userId, basicInfo, errorMessage] = await getUserInfoAndId(username, headers);
 
 
     if (errorMessage) {
         console.log(`Error fetching user info: ${errorMessage}`);
+        console.log(cookies)
+        console.log(headers)
         return {error: errorMessage};
     }
 
